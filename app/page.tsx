@@ -1,18 +1,8 @@
-
 'use client';
 import { useState } from 'react';
 
 export default function Home() {
-  // Feature 1 - Fraud Score
-  const [fraudForm, setFraudForm] = useState({
-    name: '', aadhaar_last4: '', relationship: '', policy_number: '',
-    claim_amount: '', days_since_death: '', previous_claims: '',
-    documents_submitted: [] as string[]
-  });
-  const [fraudResult, setFraudResult] = useState<any>(null);
-  const [fraudLoading, setFraudLoading] = useState(false);
-
-  // Feature 2 - Duplicate Check
+  // Feature 1 - Duplicate Check
   const [dupForm, setDupForm] = useState({ name: '', aadhaar_last4: '' });
   const [dupResult, setDupResult] = useState<any>(null);
   const [dupLoading, setDupLoading] = useState(false);
@@ -25,7 +15,7 @@ export default function Home() {
     { id: 5, name: 'Priya Sharmaa', aadhaar_last4: '4521' },
   ];
 
-  // Feature 3 - Eligibility
+  // Feature 2 - Eligibility
   const [eligForm, setEligForm] = useState({
     name: '', age: '', gender: 'female', annual_income: '', occupation: '',
     has_land: 'no', has_lpg: 'no', has_bank_account: 'yes', has_aadhaar: 'yes'
@@ -33,28 +23,13 @@ export default function Home() {
   const [eligResult, setEligResult] = useState<any>(null);
   const [eligLoading, setEligLoading] = useState(false);
 
-  // Feature 4 - Rejection Letter
+  // Feature 3 - Rejection Letter (updated fields)
   const [rejForm, setRejForm] = useState({
-    name: '', policy_number: '', claim_amount: '', language: 'English',
+    name: '', scheme_name: '', annual_income: '', language: 'Hindi',
     red_flags: [] as string[]
   });
   const [rejResult, setRejResult] = useState<any>(null);
   const [rejLoading, setRejLoading] = useState(false);
-
-  const getRiskColor = (level: string) => {
-    if (level === 'LOW') return '#1D9E75';
-    if (level === 'MEDIUM') return '#BA7517';
-    return '#E24B4A';
-  };
-
-  const toggleDoc = (doc: string) => {
-    setFraudForm(f => ({
-      ...f,
-      documents_submitted: f.documents_submitted.includes(doc)
-        ? f.documents_submitted.filter(d => d !== doc)
-        : [...f.documents_submitted, doc]
-    }));
-  };
 
   const toggleFlag = (flag: string) => {
     setRejForm(f => ({
@@ -64,19 +39,6 @@ export default function Home() {
         : [...f.red_flags, flag]
     }));
   };
-
-  async function runFraudCheck() {
-    setFraudLoading(true);
-    try {
-      const res = await fetch('/api/fraud-score', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...fraudForm, claim_amount: Number(fraudForm.claim_amount), days_since_death: Number(fraudForm.days_since_death), previous_claims: Number(fraudForm.previous_claims) })
-      });
-      setFraudResult(await res.json());
-    } catch (e) { console.error(e); }
-    setFraudLoading(false);
-  }
 
   async function runDupCheck() {
     setDupLoading(true);
@@ -110,7 +72,15 @@ export default function Home() {
       const res = await fetch('/api/rejection-reason', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ claim: { name: rejForm.name, policy_number: rejForm.policy_number, claim_amount: rejForm.claim_amount }, red_flags: rejForm.red_flags, language: rejForm.language })
+        body: JSON.stringify({
+          claim: {
+            name: rejForm.name,
+            scheme_name: rejForm.scheme_name,
+            annual_income: rejForm.annual_income
+          },
+          red_flags: rejForm.red_flags,
+          language: rejForm.language
+        })
       });
       setRejResult(await res.json());
     } catch (e) { console.error(e); }
@@ -124,10 +94,9 @@ export default function Home() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#0f172a', color: 'white', fontFamily: 'sans-serif' }}>
-      {/* Nav */}
       <nav style={{ background: '#1e293b', borderBottom: '1px solid #334155', padding: '16px 24px', position: 'sticky', top: 0, zIndex: 50, display: 'flex', alignItems: 'center', gap: '32px' }}>
         <span style={{ fontWeight: '700', fontSize: '18px', color: '#7F77DD' }}>BenefAI</span>
-        {['fraud', 'duplicate', 'eligibility', 'rejection'].map(s => (
+        {['duplicate', 'eligibility', 'rejection'].map(s => (
           <a key={s} href={`#${s}`} style={{ color: '#94a3b8', fontSize: '14px', textDecoration: 'none', textTransform: 'capitalize' }}>{s}</a>
         ))}
       </nav>
@@ -136,58 +105,10 @@ export default function Home() {
         <h1 style={{ fontSize: '28px', fontWeight: '700', marginBottom: '8px' }}>BenefAI Dashboard</h1>
         <p style={{ color: '#94a3b8', marginBottom: '32px' }}>AI-powered beneficiary identification for GIA India</p>
 
-        {/* FEATURE 1 - FRAUD SCORE */}
-        <div id="fraud" style={sectionStyle}>
-          <h2 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '4px', color: '#7F77DD' }}>Fraud Risk Score</h2>
-          <p style={{ color: '#64748b', fontSize: '13px', marginBottom: '20px' }}>Analyse a claim for fraud signals</p>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-            {[['name', 'Full Name'], ['aadhaar_last4', 'Aadhaar Last 4'], ['relationship', 'Relationship'], ['policy_number', 'Policy Number'], ['claim_amount', 'Claim Amount (INR)'], ['days_since_death', 'Days Since Death'], ['previous_claims', 'Previous Claims']].map(([key, label]) => (
-              <div key={key}>
-                <label style={labelStyle}>{label}</label>
-                <input style={inputStyle} value={(fraudForm as any)[key]} onChange={e => setFraudForm(f => ({ ...f, [key]: e.target.value }))} placeholder={label} />
-              </div>
-            ))}
-          </div>
-          <div style={{ marginTop: '12px' }}>
-            <label style={labelStyle}>Documents Submitted</label>
-            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' as const, marginTop: '8px' }}>
-              {['death_certificate', 'aadhaar', 'pan', 'bank_statement'].map(doc => (
-                <label key={doc} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: '#94a3b8', cursor: 'pointer' }}>
-                  <input type="checkbox" checked={fraudForm.documents_submitted.includes(doc)} onChange={() => toggleDoc(doc)} />
-                  {doc.replace('_', ' ')}
-                </label>
-              ))}
-            </div>
-          </div>
-          <button style={btnStyle} onClick={runFraudCheck} disabled={fraudLoading}>
-            {fraudLoading ? 'Analysing...' : 'Run Fraud Check'}
-          </button>
-          {fraudResult && (
-            <div style={{ marginTop: '20px', background: '#0f172a', borderRadius: '10px', padding: '20px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px' }}>
-                <div style={{ fontSize: '52px', fontWeight: '700', color: getRiskColor(fraudResult.risk_level) }}>{fraudResult.score}</div>
-                <div>
-                  <span style={{ background: getRiskColor(fraudResult.risk_level), color: 'white', padding: '4px 12px', borderRadius: '20px', fontSize: '12px' }}>{fraudResult.risk_level}</span>
-                  <div style={{ fontSize: '15px', fontWeight: '600', marginTop: '6px' }}>{fraudResult.decision}</div>
-                </div>
-              </div>
-              <p style={{ fontSize: '14px', color: '#94a3b8', marginBottom: '12px' }}>{fraudResult.reasoning}</p>
-              {fraudResult.red_flags?.length > 0 && (
-                <div>
-                  <div style={{ fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>Red Flags</div>
-                  {fraudResult.red_flags.map((f: string, i: number) => (
-                    <div key={i} style={{ fontSize: '13px', color: '#E24B4A', background: '#2d1515', padding: '8px 12px', borderRadius: '6px', marginBottom: '6px' }}>⚠ {f}</div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* FEATURE 2 - DUPLICATE CHECK */}
+        {/* FEATURE 1 - DUPLICATE CHECK */}
         <div id="duplicate" style={sectionStyle}>
           <h2 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '4px', color: '#7F77DD' }}>Duplicate Detection</h2>
-          <p style={{ color: '#64748b', fontSize: '13px', marginBottom: '20px' }}>Check if applicant already exists in the system</p>
+          <p style={{ color: '#64748b', fontSize: '13px', marginBottom: '20px' }}>Check if this beneficiary is already registered in the system</p>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             <div>
               <label style={labelStyle}>Applicant Name</label>
@@ -216,10 +137,10 @@ export default function Home() {
           )}
         </div>
 
-        {/* FEATURE 3 - ELIGIBILITY */}
+        {/* FEATURE 2 - ELIGIBILITY */}
         <div id="eligibility" style={sectionStyle}>
-          <h2 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '4px', color: '#7F77DD' }}>Scheme Eligibility</h2>
-          <p style={{ color: '#64748b', fontSize: '13px', marginBottom: '20px' }}>Check which government schemes the applicant qualifies for</p>
+          <h2 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '4px', color: '#7F77DD' }}>Scheme Eligibility Checker</h2>
+          <p style={{ color: '#64748b', fontSize: '13px', marginBottom: '20px' }}>Check which government schemes the beneficiary qualifies for (PM-KISAN, PMUY, PMJJBY, PMSBY)</p>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             {[['name', 'Full Name'], ['age', 'Age'], ['annual_income', 'Annual Income (INR)'], ['occupation', 'Occupation']].map(([key, label]) => (
               <div key={key}>
@@ -258,34 +179,39 @@ export default function Home() {
           )}
         </div>
 
-        {/* FEATURE 4 - REJECTION LETTER */}
+        {/* FEATURE 3 - REJECTION LETTER (updated) */}
         <div id="rejection" style={sectionStyle}>
           <h2 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '4px', color: '#7F77DD' }}>Rejection Letter Generator</h2>
-          <p style={{ color: '#64748b', fontSize: '13px', marginBottom: '20px' }}>Generate an explainable rejection with appeal steps</p>
+          <p style={{ color: '#64748b', fontSize: '13px', marginBottom: '20px' }}>Generate a plain-language rejection letter for rural beneficiaries in their local language</p>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             <div>
-              <label style={labelStyle}>Claimant Name</label>
-              <input style={inputStyle} value={rejForm.name} onChange={e => setRejForm(f => ({ ...f, name: e.target.value }))} placeholder="Full name" />
+              <label style={labelStyle}>Applicant Name</label>
+              <input style={inputStyle} value={rejForm.name} onChange={e => setRejForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Ramesh Kumar" />
             </div>
             <div>
-              <label style={labelStyle}>Policy Number</label>
-              <input style={inputStyle} value={rejForm.policy_number} onChange={e => setRejForm(f => ({ ...f, policy_number: e.target.value }))} placeholder="Policy number" />
+              <label style={labelStyle}>Scheme Name</label>
+              <select style={inputStyle} value={rejForm.scheme_name} onChange={e => setRejForm(f => ({ ...f, scheme_name: e.target.value }))}>
+                <option value="">Select scheme</option>
+                {['PM-KISAN', 'Ujjwala (PMUY)', 'MGNREGA', 'PMJJBY', 'PMSBY'].map(s => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
             </div>
             <div>
-              <label style={labelStyle}>Claim Amount (INR)</label>
-              <input style={inputStyle} value={rejForm.claim_amount} onChange={e => setRejForm(f => ({ ...f, claim_amount: e.target.value }))} placeholder="Amount" />
+              <label style={labelStyle}>Annual Income (₹)</label>
+              <input style={inputStyle} value={rejForm.annual_income} onChange={e => setRejForm(f => ({ ...f, annual_income: e.target.value }))} placeholder="e.g. 500000" />
             </div>
             <div>
               <label style={labelStyle}>Language</label>
               <select style={inputStyle} value={rejForm.language} onChange={e => setRejForm(f => ({ ...f, language: e.target.value }))}>
-                {['English', 'Hindi', 'Kannada'].map(l => <option key={l} value={l}>{l}</option>)}
+                {['Hindi', 'English', 'Kannada'].map(l => <option key={l} value={l}>{l}</option>)}
               </select>
             </div>
           </div>
           <div style={{ marginTop: '12px' }}>
             <label style={labelStyle}>Red Flags</label>
             <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' as const, marginTop: '8px' }}>
-              {['High claim amount', 'Filed within 7 days of death', 'Missing documents'].map(flag => (
+              {['Income too high', 'Duplicate Aadhaar', 'Missing documents', 'Ineligible district'].map(flag => (
                 <label key={flag} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: '#94a3b8', cursor: 'pointer' }}>
                   <input type="checkbox" checked={rejForm.red_flags.includes(flag)} onChange={() => toggleFlag(flag)} />
                   {flag}

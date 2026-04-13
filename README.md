@@ -59,7 +59,7 @@ India has 800 million beneficiaries across government schemes. GIA processes tho
 
   | Name | Role |
   |---|---|
-  | Pujitha Kakarlapudi | Project lead, intake form, database, audit trail |
+  | Pujitha Kakarlapudi | intake form, database, audit trail |
   | V Deepthi Priya | Duplicate detection, scheme eligibility, rejection letter generator |
   | Saanvi Sanjay| Document OCR, satellite verification, WhatsApp notifications |
   | Sharvani S | Fraud heatmap, network graph, voice verification, analytics |
